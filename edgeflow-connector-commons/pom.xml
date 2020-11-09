@@ -11,6 +11,24 @@
 
     <artifactId>edgeflow-connector-commons</artifactId>
 
-
+    <dependencies>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.cloudera.labs.envelope</groupId>
+            <artifactId>envelope-core</artifactId>
+            <version>0.7.2-df-spark2.4</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
 
 </project>
