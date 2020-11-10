@@ -16,4 +16,8 @@ public class ConnectorConfig {
 
     public static final String CONFIG_FETCH_SIZE = "fetch-size";
     public static final String CONFIG_JDBC_QUERY = "query";
+    public static final String CONFIG_JDBC_TABLE = "table";
+
+    public static final String CONFIG_BATCH_SIZE = "batch-size";
+
 }

@@ -26,15 +26,7 @@ public class PostgreSqlInput implements BatchInput, ProvidesAlias, ProvidesValid
     Integer fetchSize = 100;
     JdbcInfo jdbcInfo;
     String query;
-    String driver;
 
-
-    /**
-     *  just like jdbcInfo, this class is for offset management.
-     */
-    public static class OffsetInfo{
-        //todo
-    }
 
     @Override
     public String getAlias() {
@@ -65,10 +57,7 @@ public class PostgreSqlInput implements BatchInput, ProvidesAlias, ProvidesValid
                 .option("pushDownPredicate", true).option("driver","org.postgresql.Driver");
 
         String querySql = ExpressionBuilder.wrapQueryAsTable(query, "DF9999");
-        Properties properties = new Properties();
-        properties.setProperty("user", jdbcInfo.getUsername());
-        properties.setProperty("password", jdbcInfo.getPassword() );
-        Dataset<Row> jdbc = reader.jdbc(jdbcInfo.getUrl(), querySql, properties);
+        Dataset<Row> jdbc = reader.jdbc(jdbcInfo.getUrl(), querySql, jdbcInfo.getProperties());
         return jdbc;
     }
 

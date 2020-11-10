@@ -18,6 +18,12 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>com.cloudera.labs.envelope</groupId>
+            <artifactId>envelope-lib</artifactId>
+            <version>0.7.2-df-spark2.4</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-catalyst_2.11</artifactId>
             <version>2.4.5</version>

@@ -4,6 +4,7 @@ import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,6 +52,13 @@ public class JdbcInfo {
 
     public String getPassword(){
         return password;
+    }
+
+    public Properties getProperties(){
+        Properties properties = new Properties();
+        properties.setProperty("user", getUsername());
+        properties.setProperty("password", getPassword() );
+        return properties;
     }
 
     static boolean isValid(String url){
