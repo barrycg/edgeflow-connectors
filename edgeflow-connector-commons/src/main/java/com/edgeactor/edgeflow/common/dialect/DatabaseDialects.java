@@ -1,6 +1,7 @@
-package com.edgeactor.edgeflow.common.jdbc.dialect;
+package com.edgeactor.edgeflow.common.dialect;
 
 
+import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,24 +58,21 @@ public class DatabaseDialects {
         LOG.debug("Registered {} source dialects", count.get());
     }
 
-
     public static DatabaseDialect create(
             String dialectName,
-            String config
+            Config config
     ) throws ConnectException {
         LOG.debug("Looking for named dialect '{}'", dialectName);
         Set<String> dialectNames = new HashSet<>();
-        for (DatabaseDialect provider : REGISTRY.values()) {
-            dialectNames.add(provider.name());
-            if (provider.name().equals(dialectName)) {
-                // return provider(config);
-                return provider.create();
+        for (DatabaseDialect dialect : REGISTRY.values()) {
+            dialectNames.add(dialect.name());
+            if (dialect.name().equals(dialectName)) {
+                return dialect.create(config);
             }
         }
-        for (DatabaseDialect provider : REGISTRY.values()) {
-            if (provider.name().equalsIgnoreCase(dialectName)) {
-                // return provider.create(config);
-                return provider.create();
+        for (DatabaseDialect dialect : REGISTRY.values()) {
+            if (dialect.name().equalsIgnoreCase(dialectName)) {
+                return dialect.create(config);
             }
         }
         throw new ConnectException(

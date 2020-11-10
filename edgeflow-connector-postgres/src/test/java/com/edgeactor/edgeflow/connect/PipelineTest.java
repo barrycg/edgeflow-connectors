@@ -7,12 +7,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(JMockit.class)
-public class UnitTest {
+public class PipelineTest {
 
     private TestHelper testHelper = new TestHelper();
 
     @Test
-    public void runPostgreSqlInput() throws Exception{
+    public void runPostgreSqlPipeline() throws Exception{
 
         String pipelineFile = "caseTest.conf";
         testHelper.pipelineRunner(pipelineFile);

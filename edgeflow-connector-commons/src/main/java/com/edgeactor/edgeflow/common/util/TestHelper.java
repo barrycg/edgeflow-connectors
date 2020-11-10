@@ -25,4 +25,13 @@ public class TestHelper {
         Runner runner = new Runner();
         runner.run(config);
     }
+
+    public static Config getConfig(String pipelineFile) throws Exception{
+        ClassLoader classLoader = TestHelper.class.getClassLoader();
+        URL resource = classLoader.getResource(pipelineFile);
+        String configPath = Objects.requireNonNull(resource.getPath());
+        Config config = ConfigUtils.configFromPath(configPath);
+        config = ConfigUtils.applySubstitutions(config);
+        return config;
+    }
 }

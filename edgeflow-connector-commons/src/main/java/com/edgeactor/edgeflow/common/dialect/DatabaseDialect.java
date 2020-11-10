@@ -1,7 +1,8 @@
-package com.edgeactor.edgeflow.common.jdbc.dialect;
+package com.edgeactor.edgeflow.common.dialect;
 
 
 import com.edgeactor.edgeflow.common.util.ConnectionProvider;
+import com.typesafe.config.Config;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -11,7 +12,7 @@ import java.util.Collection;
 public interface DatabaseDialect extends ConnectionProvider {
 
 
-    DatabaseDialect create();
+    DatabaseDialect create(Config config);
 
     /**
      * Return the name of the dialect.
