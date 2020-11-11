@@ -9,6 +9,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class JdbcInfo {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcInfo.class);
     /**
      * The regular expression pattern to extract the JDBC subprotocol and subname from a JDBC URL of
      * the form {@code jdbc:<subprotocol>:<subname>} where {@code subprotocol} defines the kind of
@@ -22,7 +24,6 @@ public class JdbcInfo {
     String url;
     String username;
     String password;
-    private static final Logger LOG = LoggerFactory.getLogger(JdbcInfo.class);
     public JdbcInfo( String url, String username, String password ){
         this.url = url;
         this.username = username;

@@ -5,7 +5,6 @@ import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.ConnectException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.HashSet;
@@ -61,7 +60,7 @@ public class DatabaseDialects {
     public static DatabaseDialect create(
             String dialectName,
             Config config
-    ) throws ConnectException {
+    ) throws ClassNotFoundException {
         LOG.debug("Looking for named dialect '{}'", dialectName);
         Set<String> dialectNames = new HashSet<>();
         for (DatabaseDialect dialect : REGISTRY.values()) {
@@ -75,7 +74,7 @@ public class DatabaseDialects {
                 return dialect.create(config);
             }
         }
-        throw new ConnectException(
+        throw new ClassNotFoundException(
                 "Unable to find dialect with name '" + dialectName + "' in the available dialects: "
                 + dialectNames
         );

@@ -5,9 +5,9 @@ import com.cloudera.labs.envelope.input.BatchInput;
 import com.cloudera.labs.envelope.spark.Contexts;
 import com.cloudera.labs.envelope.validate.ProvidesValidations;
 import com.cloudera.labs.envelope.validate.Validations;
-import com.edgeactor.edgeflow.common.util.ConnectorConfig;
-import com.edgeactor.edgeflow.common.util.ExpressionBuilder;
-import com.edgeactor.edgeflow.common.util.JdbcInfo;
+import com.edgeactor.edgeflow.common.dialect.DatabaseDialect;
+import com.edgeactor.edgeflow.common.dialect.DatabaseDialects;
+import com.edgeactor.edgeflow.common.util.*;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueType;
 import org.apache.spark.sql.DataFrameReader;
@@ -16,7 +16,7 @@ import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Properties;
+
 
 public class PostgreSqlInput implements BatchInput, ProvidesAlias, ProvidesValidations {
 
@@ -25,8 +25,9 @@ public class PostgreSqlInput implements BatchInput, ProvidesAlias, ProvidesValid
     String mode;
     Integer fetchSize = 100;
     JdbcInfo jdbcInfo;
+    OffsetInfo offsetInfo;
     String query;
-
+    DatabaseDialect offsetDialect;
 
     @Override
     public String getAlias() {
@@ -36,13 +37,13 @@ public class PostgreSqlInput implements BatchInput, ProvidesAlias, ProvidesValid
     @Override
     public org.apache.spark.sql.Dataset<org.apache.spark.sql.Row> read() throws Exception {
 
-        Dataset<Row> df = null;
+        Dataset<Row> df;
         switch ( mode ){
             case ConnectorConfig.RMODE_BULK:
                 df = bulkRead();
                 break;
-            case ConnectorConfig.RMODE_INCREMENTING:
-                //todo
+            case ConnectorConfig.RMODE_TIMESTAMP_INCREMENTING:
+                df = timestampIncrementingRead();
                 break;
             default:
                 throw new IllegalArgumentException("mode 类型: " + mode + "不支持");
@@ -50,7 +51,6 @@ public class PostgreSqlInput implements BatchInput, ProvidesAlias, ProvidesValid
 
         return df;
     }
-
 
     private Dataset<Row> bulkRead(){
          DataFrameReader reader = Contexts.getSparkSession().read().option("fetchsize", fetchSize.toString() )
@@ -61,11 +61,36 @@ public class PostgreSqlInput implements BatchInput, ProvidesAlias, ProvidesValid
         return jdbc;
     }
 
+    private Dataset<Row> timestampIncrementingRead() throws Exception{
+
+        offsetDialect.buildConnection();
+        offsetInfo = offsetDialect.getLastOffset(offsetInfo);
+        offsetDialect.close();
+        String querySql = offsetDialect.buildUpsertQueryStatement(query, offsetInfo);
+
+
+        DataFrameReader reader = Contexts.getSparkSession().read().option("fetchsize", fetchSize.toString() )
+                .option("pushDownPredicate", true).option("driver","org.postgresql.Driver");
+        Dataset<Row> jdbc = reader.jdbc(jdbcInfo.getUrl(), querySql, jdbcInfo.getProperties());
+
+        return jdbc;
+    }
+
     @Override
     public void configure(Config config) {
 
         jdbcInfo = new JdbcInfo(config);
         mode = config.getString( ConnectorConfig.CONFIG_MODE );
+        if( mode.equals(ConnectorConfig.RMODE_TIMESTAMP_INCREMENTING)){
+            offsetInfo = new OffsetInfo(config);
+            try {
+                offsetDialect = DatabaseDialects.create("PostgreSqlDatabaseDialect",config);
+            } catch (Exception e) {
+                e.printStackTrace();
+                offsetDialect = null;
+            }
+        }
+
         if( config.hasPath(ConnectorConfig.CONFIG_FETCH_SIZE) ){
             fetchSize = config.getInt( ConnectorConfig.CONFIG_FETCH_SIZE);
         }
@@ -83,6 +108,10 @@ public class PostgreSqlInput implements BatchInput, ProvidesAlias, ProvidesValid
                 .mandatoryPath(ConnectorConfig.CONFIG_MODE, ConfigValueType.STRING)
                 .optionalPath(ConnectorConfig.CONFIG_FETCH_SIZE,ConfigValueType.NUMBER)
                 .optionalPath(ConnectorConfig.CONFIG_JDBC_QUERY, ConfigValueType.STRING)
+                .optionalPath(ConnectorConfig.CONFIG_OFFSETS_TIMESTAMP_COLUMN, ConfigValueType.STRING)
+                .optionalPath(ConnectorConfig.CONFIG_OFFSETS_INCREMENTING_COLUMN, ConfigValueType.STRING)
+                .optionalPath(ConnectorConfig.CONFIG_OFFSETS_NAMESPACE, ConfigValueType.STRING)
+                .optionalPath(ConnectorConfig.CONFIG_OFFSETS_TOPIC, ConfigValueType.STRING)
                 .build();
     }
 }

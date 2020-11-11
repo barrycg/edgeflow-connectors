@@ -5,7 +5,7 @@ import java.sql.SQLException;
 
 public interface ConnectionProvider {
 
-    Connection getConnection() throws SQLException;
+    Connection buildConnection() throws SQLException;
 
     void close();
 }

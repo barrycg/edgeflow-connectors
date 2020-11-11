@@ -18,14 +18,14 @@ public class DialectTest {
 
     @Test
     public void runPostgreSqlDialect() throws Exception{
-        String pipelineFile = "caseTest.conf";
+        String pipelineFile = "bulkCaseTest.conf";
         Config config = TestHelper.getConfig(pipelineFile);
 
         String stepName = "dim_bi_dept";
         config = config.getConfig(Runner.STEPS_SECTION_CONFIG).getConfig(stepName).getConfig("input");
 
-        DatabaseDialect dialect = DatabaseDialects.create("PostgreSQLDatabaseDialect",config);
-        Connection connection = dialect.getConnection();
+        DatabaseDialect dialect = DatabaseDialects.create("PostgreSqlDatabaseDialect",config);
+        Connection connection = dialect.buildConnection();
         System.out.println("ending ");
     }
 }

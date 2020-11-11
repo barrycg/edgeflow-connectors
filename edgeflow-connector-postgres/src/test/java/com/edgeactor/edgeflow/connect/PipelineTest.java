@@ -12,11 +12,15 @@ public class PipelineTest {
     private TestHelper testHelper = new TestHelper();
 
     @Test
-    public void runPostgreSqlPipeline() throws Exception{
-
-        String pipelineFile = "caseTest.conf";
+    public void runPostgreSqlBulkPipeline() throws Exception{
+        String pipelineFile = "bulkCaseTest.conf";
         testHelper.pipelineRunner(pipelineFile);
+    }
 
+    @Test
+    public void runPostgreSqlUpsertPipeline() throws Exception{
+        String pipelineFile = "incrementingCaseTest.conf";
+        testHelper.pipelineRunner(pipelineFile);
     }
 
 }
