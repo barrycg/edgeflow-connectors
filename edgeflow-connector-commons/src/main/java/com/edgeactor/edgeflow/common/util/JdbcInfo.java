@@ -8,6 +8,9 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ *  Tis class is about jdbc management.
+ */
 public class JdbcInfo {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcInfo.class);

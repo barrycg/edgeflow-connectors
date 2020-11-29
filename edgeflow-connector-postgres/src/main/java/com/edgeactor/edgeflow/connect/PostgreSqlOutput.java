@@ -24,6 +24,11 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
 
+/**
+ *  适用于postgre的BatchOutput
+ *  支持全量和增量两种模式, 增量对应的信息放在数据库本身。
+ *  @author
+ */
 public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesValidations {
 
 

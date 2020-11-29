@@ -10,6 +10,4 @@ public class ExpressionBuilder {
         return "(" +query +") " + alias;
     }
 
-
-
 }

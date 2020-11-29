@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *  just like jdbcInfo, this class is for offset management.
+ *  Just like jdbcInfo, this class is about offset management.
  */
 public class OffsetInfo{
 

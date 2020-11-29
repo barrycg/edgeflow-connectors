@@ -13,7 +13,6 @@ import scala.Option;
 import scala.Some;
 
 import java.sql.SQLException;
-import java.util.Collection;
 import java.util.Properties;
 
 import com.edgeactor.edgeflow.common.spark.util.SparkJdbcUtils;
@@ -39,24 +38,6 @@ public interface DatabaseDialect extends ConnectionProvider {
     void setLastOffset(
             OffsetInfo offsetInfo
     ) throws SQLException;
-
-    String buildDropTableStatement(String table, boolean isExists);
-
-
-    String buildCreateTableStatement(String table, Collection<String> fields);
-
-
-    String buildInsertStatement(
-            String table,
-            Collection<String> keyColumns,
-            Collection<String> nonKeyColumns
-    );
-
-    String buildUpdateStatement(
-            String table,
-            Collection<String> keyColumns,
-            Collection<String> nonKeyColumns
-    );
 
 
     String buildUpsertQueryStatement(

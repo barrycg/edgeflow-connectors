@@ -11,9 +11,11 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.time.LocalDateTime;
-import java.util.Collection;
 
-
+/**
+ *   postgre数据库的会话操作，同时固化一些SQL操作。
+ *
+ */
 public class PostgreSqlDatabaseDialect implements DatabaseDialect {
 
     private static Logger LOG = LoggerFactory.getLogger(PostgreSqlDatabaseDialect.class);
@@ -41,8 +43,8 @@ public class PostgreSqlDatabaseDialect implements DatabaseDialect {
 
         String querySql = "select id, namespace, topic, offset_timestamp, offset_incrementing, created_by, created_at from edgeflow_offset_store " +
                                     "where namespace = \'"+offsetInfo.getNamespace() +
-                                    "\' and topic = \'" +offsetInfo.getTopic()+"\'"
-                                    +" order by created_at desc limit 1";
+                                    "\' and topic = \'" +offsetInfo.getTopic()+"\'" +
+                                    " order by created_at desc limit 1";
         Statement stmt = this.connection.createStatement();
         ResultSet res = stmt.executeQuery(querySql);
         if ( res.next() ) {
@@ -67,27 +69,6 @@ public class PostgreSqlDatabaseDialect implements DatabaseDialect {
 
         Statement stmt = this.connection.createStatement();
         stmt.executeUpdate(insertSql);
-    }
-
-
-    @Override
-    public String buildDropTableStatement(String table, boolean isExists) {
-        return null;
-    }
-
-    @Override
-    public String buildCreateTableStatement(String table, Collection<String> fields) {
-        return null;
-    }
-
-    @Override
-    public String buildInsertStatement(String table, Collection<String> keyColumns, Collection<String> nonKeyColumns) {
-        return null;
-    }
-
-    @Override
-    public String buildUpdateStatement(String table, Collection<String> keyColumns, Collection<String> nonKeyColumns) {
-        return null;
     }
 
     @Override

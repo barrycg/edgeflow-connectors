@@ -26,12 +26,12 @@ object SparkJdbcUtils extends Logging {
 
     val insertBuilder = InternalInsertBySelectTableBuilder.forDriver(conn.getMetaData.getDriverName)
     internalUpsertBySelectTable(schema,
-      sinkTable,
-      sourceTable,
-      keyCols,
-      insertBuilder,
-      url,
-      properties)
+                                    sinkTable,
+                                    sourceTable,
+                                    keyCols,
+                                    insertBuilder,
+                                    url,
+                                    properties)
   }
 
   def internalUpdateBySelectTable(schema: StructType,
@@ -46,12 +46,12 @@ object SparkJdbcUtils extends Logging {
 
     val updateBuilder = InternalUpdateBySelectTableBuilder.forDriver(conn.getMetaData.getDriverName)
     internalUpsertBySelectTable(schema,
-      sinkTable,
-      sourceTable,
-      keyCols,
-      updateBuilder,
-      url,
-      properties)
+                                sinkTable,
+                                sourceTable,
+                                keyCols,
+                                updateBuilder,
+                                url,
+                                properties)
   }
 
   def internalUpsertBySelectTable(schema: StructType,

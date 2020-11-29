@@ -17,13 +17,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-
+/**
+ *  适用于postgre的BatchInput
+ *  支持全量和增量两种模式, 增量对应的信息放在数据库本身。
+ *  @author
+ */
 public class PostgreSqlInput implements BatchInput, ProvidesAlias, ProvidesValidations {
 
     private static final Logger LOG = LoggerFactory.getLogger(PostgreSqlInput.class);
 
     String mode;
-    Integer fetchSize = 100;
+    Integer fetchSize = 1000;
     JdbcInfo jdbcInfo;
     OffsetInfo offsetInfo;
     String query;
@@ -53,10 +57,12 @@ public class PostgreSqlInput implements BatchInput, ProvidesAlias, ProvidesValid
     }
 
     private Dataset<Row> bulkRead(){
-         DataFrameReader reader = Contexts.getSparkSession().read().option("fetchsize", fetchSize.toString() )
-                .option("pushDownPredicate", true).option("driver","org.postgresql.Driver");
 
         String querySql = ExpressionBuilder.wrapQueryAsTable(query, "DF9999");
+
+
+        DataFrameReader reader = Contexts.getSparkSession().read().option("fetchsize", fetchSize.toString() )
+                .option("pushDownPredicate", true).option("driver","org.postgresql.Driver");
         Dataset<Row> jdbc = reader.jdbc(jdbcInfo.getUrl(), querySql, jdbcInfo.getProperties());
         return jdbc;
     }
