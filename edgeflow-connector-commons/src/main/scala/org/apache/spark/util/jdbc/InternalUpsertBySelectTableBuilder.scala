@@ -1,4 +1,4 @@
-package com.edgeactor.edgeflow.common.spark.util
+package org.apache.spark.util.jdbc
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.jdbc.JdbcDialect

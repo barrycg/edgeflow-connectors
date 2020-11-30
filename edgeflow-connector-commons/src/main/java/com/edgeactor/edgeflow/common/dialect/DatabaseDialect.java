@@ -9,13 +9,12 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.util.jdbc.SparkJdbcUtils;
 import scala.Option;
 import scala.Some;
 
 import java.sql.SQLException;
 import java.util.Properties;
-
-import com.edgeactor.edgeflow.common.spark.util.SparkJdbcUtils;
 
 public interface DatabaseDialect extends ConnectionProvider {
 
@@ -100,6 +99,12 @@ public interface DatabaseDialect extends ConnectionProvider {
                 _keyCols,
                 url,
                 properties);
+    }
+
+
+     static void deleteIfExists(Dataset<Row> df, String criteriaCols, String url, String tableName, Properties properties, int batchSize) {
+        Option<String> _criteriaCols = new Some<>(criteriaCols);
+        SparkJdbcUtils.delete(df, _criteriaCols, url, tableName, properties, batchSize);
     }
 
 

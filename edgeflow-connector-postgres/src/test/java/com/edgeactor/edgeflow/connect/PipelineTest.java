@@ -23,4 +23,12 @@ public class PipelineTest {
         testHelper.pipelineRunner(pipelineFile);
     }
 
+
+    @Test
+    public void runPostgreSqlUpsertPipelineDeleteAndAppend() throws Exception{
+        String pipelineFile = "incrementingDACaseTest.conf";
+        testHelper.pipelineRunner(pipelineFile);
+    }
+
+
 }

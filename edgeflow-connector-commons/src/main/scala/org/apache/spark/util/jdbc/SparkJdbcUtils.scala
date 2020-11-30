@@ -1,4 +1,4 @@
-package com.edgeactor.edgeflow.common.spark.util
+package org.apache.spark.util.jdbc
 
 import java.sql.{BatchUpdateException, Connection}
 import java.util.Properties
@@ -6,7 +6,7 @@ import java.util.Properties
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, Row, SaveMode}
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcOptionsInWrite, JdbcUtils}
-import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
+import org.apache.spark.sql.jdbc.{ JdbcDialect, JdbcDialects, JdbcType}
 import org.apache.spark.sql.types.{ArrayType, BinaryType, BooleanType, ByteType, DataType, DateType, DecimalType, DoubleType, FloatType, IntegerType, LongType, ShortType, StringType, StructField, StructType, TimestampType}
 
 import scala.collection.JavaConverters._
@@ -351,6 +351,168 @@ object SparkJdbcUtils extends Logging {
     } finally {
       conn.close()
     }
+  }
+
+  def delete(df: DataFrame,
+             criteriaCols: Option[String],
+             url: String,
+             table: String,
+             properties: Properties,
+             batchSize: Int): Unit = {
+    val jdbcOptions = new JDBCOptions(url, table, properties.asScala.toMap)
+    val ensuredCriteriaCols = criteriaCols.map(f => df.schema.filter(s => f.split(",").contains(s.name)))
+    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val isCaseSensitive = false
+    val writeOption = new JdbcOptionsInWrite(url, table, jdbcOptions.parameters)
+
+    try {
+      var tableExists = JdbcUtils.tableExists(conn, writeOption)
+      if (!tableExists) {
+        return
+      }
+    } finally {
+      conn.close()
+    }
+
+    ensuredCriteriaCols match {
+      case Some(id) => delete(df, ensuredCriteriaCols, jdbcOptions, isCaseSensitive, batchSize)
+    }
+  }
+
+  def delete(df: DataFrame,
+             criteriaCols: Option[Seq[StructField]],
+             jdbcOptions: JDBCOptions,
+             isCaseSensitive: Boolean,
+             batchSize: Int): Unit = {
+
+    val dialect = JdbcDialects.get(jdbcOptions.url)
+
+    val nullTypes: Array[Int] = df.schema.fields.map { field =>
+      getJdbcType(field.dataType, dialect).jdbcNullType
+    }
+
+    val rddSchema = df.schema
+    val getConnection: () => Connection = JdbcUtils.createConnectionFactory(jdbcOptions)
+
+    df.foreachPartition { partition =>
+      deletePartition(getConnection, jdbcOptions.tableOrQuery, partition, criteriaCols, rddSchema, nullTypes, batchSize,
+        dialect, isCaseSensitive)
+    }
+  }
+
+  def deletePartition(getConnection: () => Connection,
+                      table: String,
+                      partition: Iterator[Row],
+                      criteriaCols: Option[Seq[StructField]],
+                      rddSchema: StructType,
+                      nullTypes: Array[Int],
+                      batchSize: Int,
+                      dialect: JdbcDialect,
+                      isCaseSensitive: Boolean): Iterator[Byte] = {
+
+    val conn = getConnection()
+    var committed = false
+    val supportsTransactions = try {
+      conn.getMetaData.supportsDataManipulationTransactionsOnly() ||
+        conn.getMetaData.supportsDataDefinitionAndDataManipulationTransactions()
+    } catch {
+      case NonFatal(e) =>
+        log.warn("Exception while detecting transaction support.", e)
+        true
+    }
+
+    try {
+      if (supportsTransactions) {
+        conn.setAutoCommit(false)
+      }
+
+      val _deleteStmt = DeleteBuilder.forDriver(conn.getMetaData.getDriverName)
+        .statement(conn, table, dialect, criteriaCols, rddSchema, isCaseSensitive)
+
+      _deleteStmt match {
+        case None => log.warn("Delete sql is None")
+        case Some(deleteStmt) => {
+
+          val stmt = deleteStmt.stmt
+          val deleteSchema = deleteStmt.schema
+          try {
+            var rowCount = 0
+            while (partition.hasNext) {
+              val row = partition.next()
+              val numFields = deleteSchema.fields.length
+              deleteSchema.fields.zipWithIndex.foreach {
+                case (f, idx) =>
+                  val i = row.fieldIndex(f.name)
+                  if (row.isNullAt(i)) {
+                    stmt.setNull(idx + 1, nullTypes(i))
+                  } else {
+                    deleteSchema.fields(i).dataType match {
+                      case IntegerType => stmt.setInt(idx + 1, row.getInt(i))
+                      case LongType => stmt.setLong(idx + 1, row.getLong(i))
+                      case DoubleType => stmt.setDouble(idx + 1, row.getDouble(i))
+                      case FloatType => stmt.setFloat(idx + 1, row.getFloat(i))
+                      case ShortType => stmt.setInt(idx + 1, row.getShort(i))
+                      case ByteType => stmt.setInt(idx + 1, row.getByte(i))
+                      case BooleanType => stmt.setBoolean(idx + 1, row.getBoolean(i))
+                      case StringType => stmt.setString(idx + 1, row.getString(i))
+                      case BinaryType => stmt.setBytes(idx + 1, row.getAs[Array[Byte]](i))
+                      case TimestampType => stmt.setTimestamp(idx + 1, row.getAs[java.sql.Timestamp](i))
+                      case DateType => stmt.setDate(idx + 1, row.getAs[java.sql.Date](i))
+                      case _: DecimalType => stmt.setBigDecimal(idx + 1, row.getDecimal(i))
+                      case ArrayType(et, _) =>
+                        val array = conn.createArrayOf(
+                          getJdbcType(et, dialect).databaseTypeDefinition.toLowerCase,
+                          row.getSeq[AnyRef](i).toArray
+                        )
+                        stmt.setArray(idx + 1, array)
+                      case _ => throw new IllegalArgumentException(
+                        s"Can't translate non-null value for field $i"
+                      )
+                    }
+                  }
+              }
+
+              stmt.addBatch()
+              rowCount += 1
+              if (rowCount % batchSize == 0) {
+                stmt.executeBatch()
+                conn.commit()
+                rowCount = 0
+              }
+            }
+
+            if (rowCount > 0) {
+              stmt.executeBatch()
+            }
+          } catch {
+            case jdbce: BatchUpdateException => jdbce.getNextException().printStackTrace()
+          } finally {
+            stmt.close()
+          }
+
+          if (supportsTransactions) {
+            conn.commit()
+          }
+
+          committed = true
+        }
+      }
+    } finally {
+      if (!committed) {
+        if (supportsTransactions) {
+          conn.rollback()
+        }
+
+        conn.close()
+      } else {
+        try {
+          conn.close()
+        } catch {
+          case e: Exception => log.warn("Transaction succeeded, but closing failed", e)
+        }
+      }
+    }
+    Array[Byte]().iterator
   }
 
 }

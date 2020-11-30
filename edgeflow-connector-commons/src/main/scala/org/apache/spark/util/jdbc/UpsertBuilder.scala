@@ -1,4 +1,4 @@
-package com.edgeactor.edgeflow.common.spark.util
+package org.apache.spark.util.jdbc
 
 import java.sql.{Connection, PreparedStatement}
 

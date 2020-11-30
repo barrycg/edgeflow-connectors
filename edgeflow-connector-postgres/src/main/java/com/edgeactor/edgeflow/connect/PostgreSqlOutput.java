@@ -100,6 +100,17 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
                 .jdbc(jdbcInfo.getUrl(), tableName, jdbcInfo.getProperties());
     }
 
+    /**
+     *  using 'copy' to do the append operation.
+     * @param df
+     */
+    private void appendDataFrameByCopy(Dataset<Row> df) {
+//        df.write().mode(SaveMode.Append).option("batchsize", batchSize)
+//                .jdbc(jdbcInfo.getUrl(), tableName, jdbcInfo.getProperties());
+        DataframeUtils.nonTransactionalCopy(df, tableName, jdbcInfo.getUrl(),jdbcInfo.getProperties());
+    }
+
+
     private void upsertDataFrame(Dataset<Row> df) throws Exception {
 
         if( createIfNotExist(df) ){
@@ -112,6 +123,9 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
                 break;
             case ConnectorConfig.UPSERT_POLICY_NATIVE:
                 upsertDataFrameUseNative(df);
+                break;
+            case ConnectorConfig.UPSERT_POLICY_DELETE_APPEND:
+                upsertDataFrameUseDeleteAndAppend(df);
                 break;
             default:
                 throw new IllegalArgumentException("PostgreSqlOutput does not support upsert type: " + upsertPolicy);
@@ -157,6 +171,16 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
         // 3. 从缓存表插入新纪录到目标表
         DatabaseDialect.internalInsertBySelectTable(df.schema(), jdbcInfo.getUrl(), tableName,
                 tempTable, keyColumns, jdbcInfo.getProperties());
+    }
+
+    private void upsertDataFrameUseDeleteAndAppend(Dataset<Row> df) {
+        // 1. 删除目标表中已有主键记录
+        DatabaseDialect.deleteIfExists(df, keyColumns, jdbcInfo.getUrl(), tableName,
+                                            jdbcInfo.getProperties(), batchSize);
+        // 2. 插入新纪录
+//        df.write().mode(SaveMode.Append).option("batchsize", batchSize)
+//                .jdbc(jdbcInfo.getUrl(), tableName, jdbcInfo.getProperties());
+        appendDataFrameByCopy(df);
     }
 
     @Override
