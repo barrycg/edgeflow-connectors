@@ -20,13 +20,13 @@ public class DataframeUtils {
         return ds.agg(max(ds.col(column))).as(Encoders.TIMESTAMP()).collectAsList().get(0);
     }
 
-    public static void nonTransactionalCopy(Dataset<Row> df, String tableName, String url, Properties properties ){
+    public static void appendDataFrameByCopy(Dataset<Row> df, String tableName, String url, Properties properties ){
 
         // 1.  write the df to the local temporary file.
 
         // 2.  copy to target table from the temporary file.
 
-        PostgresUtils.nonTransactionalCopy(  df, df.schema(), tableName, url, properties );
+        PostgresUtils.appendDataFrameByCopy(  df, df.schema(), tableName, url, properties );
     }
 
 }

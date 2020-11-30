@@ -38,6 +38,7 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
     private String upsertPolicy = ConnectorConfig.UPSERT_POLICY_NATIVE;
     private String upsertTempPrefix = "tmp.";
     private String keyColumns;
+    private String appendImpl = "native";
 
     OffsetInfo offsetInfo;
     DatabaseDialect offsetDialect;
@@ -61,13 +62,13 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
                         appendDataFrame(row._2);
                         break;
                     case OVERWRITE:
-                        // todo
+                        overwriteDataFrame(row._2);
                         break;
                     case UPSERT:
                         upsertDataFrame(row._2);
                         break;
                     case DELETE:
-                        // todo
+                        deleteDataFrame(row._2);
                         break;
                     default:
                         throw new IllegalArgumentException("PostgreSqlOutput does not support mutation type: " + row._1);
@@ -96,6 +97,21 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
     }
 
     private void appendDataFrame(Dataset<Row> df) {
+
+        switch ( appendImpl ){
+            case "copy":
+                appendDataFrameByCopy(df);
+                break;
+            case "native":
+            default:
+                appendDataFrameNative(df);
+                break;
+        }
+    }
+
+
+
+    private void appendDataFrameNative(Dataset<Row> df) {
         df.write().mode(SaveMode.Append).option("batchsize", batchSize)
                 .jdbc(jdbcInfo.getUrl(), tableName, jdbcInfo.getProperties());
     }
@@ -105,9 +121,13 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
      * @param df
      */
     private void appendDataFrameByCopy(Dataset<Row> df) {
-//        df.write().mode(SaveMode.Append).option("batchsize", batchSize)
-//                .jdbc(jdbcInfo.getUrl(), tableName, jdbcInfo.getProperties());
-        DataframeUtils.nonTransactionalCopy(df, tableName, jdbcInfo.getUrl(),jdbcInfo.getProperties());
+        DataframeUtils.appendDataFrameByCopy(df, tableName, jdbcInfo.getUrl(),jdbcInfo.getProperties());
+    }
+
+    private void overwriteDataFrame(Dataset<Row> df) {
+        df.write().mode(SaveMode.Overwrite)
+                .option("batchsize", batchSize)
+                .jdbc(jdbcInfo.getUrl(), tableName, jdbcInfo.getProperties());
     }
 
 
@@ -130,7 +150,10 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
             default:
                 throw new IllegalArgumentException("PostgreSqlOutput does not support upsert type: " + upsertPolicy);
         }
+    }
 
+    private void deleteDataFrame(Dataset<Row> df) {
+        DatabaseDialect.deleteIfExists(df, null, jdbcInfo.getUrl(), tableName, jdbcInfo.getProperties(), batchSize);
     }
 
     /**
@@ -180,7 +203,7 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
         // 2. 插入新纪录
 //        df.write().mode(SaveMode.Append).option("batchsize", batchSize)
 //                .jdbc(jdbcInfo.getUrl(), tableName, jdbcInfo.getProperties());
-        appendDataFrameByCopy(df);
+        appendDataFrame(df);
     }
 
     @Override
@@ -200,6 +223,10 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
 
         if (config.hasPath(ConnectorConfig.CONFIG_UPSERT_KEY_COLUMNS)) {
             keyColumns = config.getString(ConnectorConfig.CONFIG_UPSERT_KEY_COLUMNS);
+        }
+
+        if (config.hasPath(ConnectorConfig.CONFIG_APPEND_IMPL)) {
+            appendImpl = config.getString(ConnectorConfig.CONFIG_APPEND_IMPL);
         }
 
         if (config.hasPath("offsets")) {
@@ -228,6 +255,7 @@ public class PostgreSqlOutput implements BulkOutput, ProvidesAlias, ProvidesVali
                 .optionalPath(ConnectorConfig.CONFIG_OFFSETS_INCREMENTING_COLUMN, ConfigValueType.STRING)
                 .optionalPath(ConnectorConfig.CONFIG_OFFSETS_NAMESPACE, ConfigValueType.STRING)
                 .optionalPath(ConnectorConfig.CONFIG_OFFSETS_TOPIC, ConfigValueType.STRING)
+                .optionalPath(ConnectorConfig.CONFIG_APPEND_IMPL, ConfigValueType.STRING)
                 .build();
     }
 }

@@ -25,7 +25,7 @@ import scala.util.Try
   */
 object PostgresUtils extends Logging{
 
-  def nonTransactionalCopy(
+  def appendDataFrameByCopy(
                             df: DataFrame,
                             schema: StructType,
                             tableName: String,

@@ -33,4 +33,6 @@ public class ConnectorConfig {
     public static final String CONFIG_UPSERT_KEY_COLUMNS = "upsert.key-columns";
     public static final String CONFIG_UPSERT_TEMP_PREFIX = "upsert.temp-prefix";
 
+    public static final String CONFIG_APPEND_IMPL = "append.impl";
+
 }

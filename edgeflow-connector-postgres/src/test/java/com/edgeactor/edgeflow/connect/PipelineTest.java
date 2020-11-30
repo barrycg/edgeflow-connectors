@@ -30,5 +30,4 @@ public class PipelineTest {
         testHelper.pipelineRunner(pipelineFile);
     }
 
-
 }
